@@ -96,94 +96,77 @@ public class GlobalRequestHandler {
     }
 
     public static void startWadb(String port) {
-        if (Sui.isSui()) {
-            Runnable runnable = () -> {
-                try {
-                    ShizukuSystemProperties.set("service.adb.tcp.port", port);
-                    if (!BuildConfig.DONOT_RESTART_ADBD || !BuildConfig.DEBUG) {
-                        ShizukuSystemProperties.set("ctl.restart", "adbd");
-                    }
-                    Events.postWadbStateChangedEvent(event -> event.onWadbStarted(Integer.parseInt(port)));
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                    Events.postWadbFailureEvent(WadbFailureEvent::onOperateFailure);
-                }
-            };
-
-            if (Shizuku.checkSelfPermission() == PERMISSION_GRANTED) {
-                runnable.run();
-            } else if (Shizuku.shouldShowRequestPermissionRationale()) {
-                Events.postWadbFailureEvent(WadbFailureEvent::onRootPermissionFailure);
-            } else {
-                Shizuku.addRequestPermissionResultListener(new Shizuku.OnRequestPermissionResultListener() {
-                    @Override
-                    public void onRequestPermissionResult(int requestCode, int grantResult) {
-                        if (requestCode != 1) return;
-
-                        Shizuku.removeRequestPermissionResultListener(this);
-                        if (grantResult == PERMISSION_GRANTED) {
-                            runnable.run();
-                        }
-                    }
-                });
-                Shizuku.requestPermission(1);
+    // Always attempt to use Shizuku path
+    Runnable runnable = () -> {
+        try {
+            ShizukuSystemProperties.set("service.adb.tcp.port", port);
+            if (!BuildConfig.DONOT_RESTART_ADBD || !BuildConfig.DEBUG) {
+                ShizukuSystemProperties.set("ctl.restart", "adbd");
             }
-        } else {
-            EXECUTOR.submit(() -> {
-                int exitCode = runCommands(getStartWadbCommand(port));
-                Log.d(TAG, "startWadb: " + exitCode);
-                if (exitCode == 0) {
-                    Events.postWadbStateChangedEvent(event -> event.onWadbStarted(Integer.parseInt(port)));
-                } else {
-                    Events.postWadbFailureEvent(WadbFailureEvent::onOperateFailure);
-                }
-            });
+            Events.postWadbStateChangedEvent(event -> event.onWadbStarted(Integer.parseInt(port)));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Events.postWadbFailureEvent(WadbFailureEvent::onOperateFailure);
         }
+    };
+
+    if (Shizuku.checkSelfPermission() == PERMISSION_GRANTED) {
+        runnable.run();
+    } else if (Shizuku.shouldShowRequestPermissionRationale()) {
+        Events.postWadbFailureEvent(WadbFailureEvent::onRootPermissionFailure);
+    } else {
+        Shizuku.addRequestPermissionResultListener(new Shizuku.OnRequestPermissionResultListener() {
+            @Override
+            public void onRequestPermissionResult(int requestCode, int grantResult) {
+                if (requestCode != 1) return;
+
+                Shizuku.removeRequestPermissionResultListener(this);
+                if (grantResult == PERMISSION_GRANTED) {
+                    runnable.run();
+                } else {
+                    // If Shizuku permission is denied, post a failure event
+                    Events.postWadbFailureEvent(WadbFailureEvent::onRootPermissionFailure);
+                }
+            }
+        });
+        Shizuku.requestPermission(1);
     }
+}
 
     public static void stopWadb() {
-        if (Sui.isSui()) {
-            Runnable runnable = () -> {
-                try {
-                    ShizukuSystemProperties.set("service.adb.tcp.port", "-1");
-                    if (!BuildConfig.DONOT_RESTART_ADBD || !BuildConfig.DEBUG) {
-                        ShizukuSystemProperties.set("ctl.restart", "adbd");
-                    }
-                    Events.postWadbStateChangedEvent(WadbStateChangedEvent::onWadbStopped);
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                    Events.postWadbFailureEvent(WadbFailureEvent::onOperateFailure);
-                }
-            };
-
-            if (Shizuku.checkSelfPermission() == PERMISSION_GRANTED) {
-                runnable.run();
-            } else if (Shizuku.shouldShowRequestPermissionRationale()) {
-                Events.postWadbFailureEvent(WadbFailureEvent::onRootPermissionFailure);
-            } else {
-                Shizuku.addRequestPermissionResultListener(new Shizuku.OnRequestPermissionResultListener() {
-                    @Override
-                    public void onRequestPermissionResult(int requestCode, int grantResult) {
-                        if (requestCode != 2) return;
-
-                        Shizuku.removeRequestPermissionResultListener(this);
-                        if (grantResult == PERMISSION_GRANTED) {
-                            runnable.run();
-                        }
-                    }
-                });
-                Shizuku.requestPermission(2);
+    // Always attempt to use Shizuku path
+    Runnable runnable = () -> {
+        try {
+            ShizukuSystemProperties.set("service.adb.tcp.port", "-1");
+            if (!BuildConfig.DONOT_RESTART_ADBD || !BuildConfig.DEBUG) {
+                ShizukuSystemProperties.set("ctl.restart", "adbd");
             }
-        } else {
-            EXECUTOR.submit(() -> {
-                int exitCode = runCommands(STOP_WADB_COMMANDS);
-
-                if (exitCode == 0) {
-                    Events.postWadbStateChangedEvent(WadbStateChangedEvent::onWadbStopped);
-                } else {
-                    Events.postWadbFailureEvent(WadbFailureEvent::onOperateFailure);
-                }
-            });
+            Events.postWadbStateChangedEvent(WadbStateChangedEvent::onWadbStopped);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Events.postWadbFailureEvent(WadbFailureEvent::onOperateFailure);
         }
+    };
+
+    if (Shizuku.checkSelfPermission() == PERMISSION_GRANTED) {
+        runnable.run();
+    } else if (Shizuku.shouldShowRequestPermissionRationale()) {
+        Events.postWadbFailureEvent(WadbFailureEvent::onRootPermissionFailure);
+    } else {
+        Shizuku.addRequestPermissionResultListener(new Shizuku.OnRequestPermissionResultListener() {
+            @Override
+            public void onRequestPermissionResult(int requestCode, int grantResult) {
+                if (requestCode != 2) return;
+
+                Shizuku.removeRequestPermissionResultListener(this);
+                if (grantResult == PERMISSION_GRANTED) {
+                    runnable.run();
+                } else {
+                    // If Shizuku permission is denied, post a failure event
+                    Events.postWadbFailureEvent(WadbFailureEvent::onRootPermissionFailure);
+                }
+            }
+        });
+        Shizuku.requestPermission(2);
     }
 }
